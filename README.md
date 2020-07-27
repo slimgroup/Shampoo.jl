@@ -13,5 +13,5 @@ It is based on julia language and [JUDI] package.
 Please use the command below to install the package
 
 ```julia
-julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/slimgroup/TimeLapse"))'
+julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/slimgroup/SeismicPreconditioners"))'
 ```
