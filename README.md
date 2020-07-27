@@ -10,8 +10,8 @@ It is based on julia language and [JUDI] package.
 
 ### Installation
 
-Please use the command
+Please use the command below to install the package
 
-'''julia
+```julia
 julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/slimgroup/TimeLapse"))'
-'''
+```
