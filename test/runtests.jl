@@ -1,6 +1,6 @@
-using SeismicPrecond
+using SeismicPreconditioners
 using Test
 
-@testset "SeismicPrecond.jl" begin
+@testset "SeismicPreconditioners.jl" begin
     # Write your tests here.
 end

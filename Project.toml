@@ -1,6 +1,6 @@
-name = "SeismicPrecond"
+name = "SeismicPreconditioners"
 uuid = "5be1adcc-c8d0-4ece-932e-72d2f9abdad2"
-authors = ["Francis <ziyi.yin.97@gmail.com> and contributors"]
+authors = ["Ziyi Yin <ziyi.yin.97@gmail.com> and contributors"]
 version = "0.1.0"
 
 [compat]

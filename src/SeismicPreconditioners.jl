@@ -1,4 +1,4 @@
-module SeismicPrecond
+module SeismicPreconditioners
 
 # Write your package code here.
 
