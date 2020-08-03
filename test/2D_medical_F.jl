@@ -114,7 +114,7 @@ title("Experimental setup")
 
 q_new = F'*(F*q)
 
-q_precond = P'*F'*(F*P*q)
+q_precond = P'*F'*F*(P*q)
 
 figure();
 subplot(2,1,1);
