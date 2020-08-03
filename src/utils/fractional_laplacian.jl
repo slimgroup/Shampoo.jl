@@ -31,20 +31,37 @@ function laplacian_mask(model::Modelall,order::Number)
 	return convert(Array{Float32,2},mask)
 end
 
-function apply_mask_fourier(q::Array,mask::Array,model::Modelall)
+function apply_mask_fourier(q::Array,mask::Array,model::Modelall,info::Info)
 	n = model.n
-	q_t = reshape(q,n)
-	q_f = fftshift(fft(q_t))
-	q_new = mask.*q_f
-	q_ans = real.(ifft(ifftshift(q_new)))
+	nsrc = info.nsrc
+	q_t = reshape(q,n[1],n[2],nsrc)
+	q_ans = deepcopy(q_t)
+	for i = 1:nsrc
+		q_f = fftshift(fft(q_t[:,:,i]))
+		q_new = mask.*q_f
+		q_ans[:,:,i] = real.(ifft(ifftshift(q_new)))
+	end
+	return reshape(q_ans,size(q))
+end
+
+function apply_mask_fourier(q::judiWeights,mask::Array,model::Modelall,info::Info)
+	n = model.n
+	nsrc = info.nsrc
+	q_ans = deepcopy(q)
+	for i = 1:nsrc
+		q_t = q.weights[i]
+		q_f = fftshift(fft(q_t))
+		q_new = mask.*q_f
+		q_ans.weights[i] = real.(ifft(ifftshift(q_new)))
+	end
 	return q_ans
 end
 
-function laplacian_operator(model::Modelall,order::Number)
+function laplacian_operator(model::Modelall,order::Number,info::Info)
 	n = model.n
 	P = joLinearFunctionFwd_T(prod(n), prod(n),
-	                             v -> vec(apply_mask_fourier(v,laplacian_mask(model,order),model)),
-	                             w -> vec(apply_mask_fourier(w,laplacian_mask(model,order),model)),
+	                             v -> apply_mask_fourier(v,laplacian_mask(model,order),model,info),
+	                             w -> apply_mask_fourier(w,laplacian_mask(model,order),model,info),
 	                             Float32,Float32,name="Fractional laplacian operator")
 	return P
 end
