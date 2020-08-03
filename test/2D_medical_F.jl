@@ -95,6 +95,7 @@ P = RightPrecondF(F)
 # Extended modeling CNN layers
 q = zeros(Float32,n)
 q[201,201] = 1f0
+q = judiWeights(q)
 
 PyPlot.rc("font", family="serif"); PyPlot.rc("xtick", labelsize=8); PyPlot.rc("ytick", labelsize=8)
 figure(); imshow(reshape(sqrt.(1f0./m), n[1], n[2])',extent=(0,extentx,extentz,0));
@@ -111,9 +112,9 @@ title("Experimental setup")
 
 ######################################### Set up JUDI operators ###################################
 
-q_new = F'*F*vec(q)
+q_new = F'*F*q
 
-q_precond = P'*F'*F*P*vec(q)
+q_precond = P'*F'*F*P*q
 
 figure();
 subplot(2,1,1);
@@ -123,15 +124,15 @@ PyPlot.plot(abs.(fftshift(fft(wavelet))));title("wavelet in frequency domain");
 
 figure();
 subplot(2,2,1)
-imshow(reshape(q_new,n)[130:270,130:270]',vmin=-0.8*norm(q_new,Inf),vmax=0.8*norm(q_new,Inf));title("F'*F*q")
+imshow(reshape(q_new.data[1],n)[130:270,130:270]',vmin=-0.8*norm(q_new.data[1],Inf),vmax=0.8*norm(q_new.data[1],Inf));title("F'*F*q")
 subplot(2,2,2)
-imshow(reshape(q_precond,n)[130:270,130:270]',vmin=-0.8*norm(q_precond,Inf),vmax=0.8*norm(q_precond,Inf));title("P'*F'*F*P*q")
+imshow(reshape(q_precond.data[1],n)[130:270,130:270]',vmin=-0.8*norm(q_precond.data[1],Inf),vmax=0.8*norm(q_precond.data[1],Inf));title("P'*F'*F*P*q")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(q_new,n)')))/norm(abs.(fftshift(fft(reshape(q_new,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(q_new.data[1],n)')))/norm(abs.(fftshift(fft(reshape(q_new.data[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(q_precond,n)')))/norm(abs.(fftshift(fft(reshape(q_precond,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(q_precond.data[1],n)')))/norm(abs.(fftshift(fft(reshape(q_precond.data[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 
-d_obs = F*vec(q)
+d_obs = F*q
 
 maxit = 20
 
@@ -166,10 +167,10 @@ legend()
 
 figure();
 subplot(2,2,1)
-imshow(reshape(q1,n)[130:270,130:270]',vmin=-0.8*norm(q1,Inf),vmax=0.8*norm(q1,Inf));title("LSQR")
+imshow(reshape(q1.data[1],n)[130:270,130:270]',vmin=-0.8*norm(q1.data[1],Inf),vmax=0.8*norm(q1.data[1],Inf));title("LSQR")
 subplot(2,2,2)
-imshow(reshape(L*q2,n)[130:270,130:270]',vmin=-0.8*norm(L*q2,Inf),vmax=0.8*norm(L*q2,Inf));title("P-LSQR")
+imshow(reshape(L*q2.data[1],n)[130:270,130:270]',vmin=-0.8*norm(L*q2.data[1],Inf),vmax=0.8*norm(L*q2.data[1],Inf));title("P-LSQR")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(q1,n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape(q1.data[1],n)'))),cmap="jet")
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(L*q2,n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape(L*q2.data[1],n)'))),cmap="jet")
