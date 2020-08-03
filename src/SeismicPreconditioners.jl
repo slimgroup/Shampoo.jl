@@ -1,5 +1,11 @@
+__precompile__()
 module SeismicPreconditioners
 
-# Write your package code here.
+using JUDI, JOLI, LinearAlgebra, FFTW
+
+include("RightPreconditioner/RightPreconditioner.jl")
+
+include("utils/fractional_laplacian.jl")
+include("utils/wavelet.jl")
 
 end
