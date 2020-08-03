@@ -1,5 +1,7 @@
-using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI
+using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI, DSP
 using IterativeSolvers
+
+using SeismicPreconditioners
 
 function weight(n, d, xsrc_index, zsrc_index, nsrc)
 	xs = reshape(xsrc_index*d[1],:,1,nsrc);
@@ -45,7 +47,7 @@ nt = Int64(timeS/dtS)+1
 fmin = 10f0
 fmax = 80f0
 cfreqs = (fmin, fmin+10f0, fmax-10f0, fmax) # corner frequencies
-wavelet = cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hanning)
+wavelet = cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hamming)
 #wavelet = ricker_wavelet(timeS, dtS, 0.04f0)[:,1]
 
 ################################### Source/receiver geometry ######################################
