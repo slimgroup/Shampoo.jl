@@ -2,25 +2,35 @@ using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI, DSP
 using IterativeSolvers
 
 using SeismicPreconditioners
+import Base.zero
+using Base.Sys
+import Base.*
+*(A::joLinearFunction, v::judiWeights) = A.fop(v)
 
-function weight(n, d, xsrc_index, zsrc_index, nsrc)
-	xs = reshape(xsrc_index*d[1],:,1,nsrc);
-	zs = reshape(zsrc_index*d[1],1,:,nsrc);
-	x = zeros(n[1],1,nsrc);
-	x .= reshape((collect(1:n[1]).-1)*d[1], :, 1)
-	z = zeros(1,n[2],nsrc);
-    z .= reshape((collect(1:n[2]).-1)*d[2], 1, :)
-	W = zeros(Float32,n[1],n[2],nsrc)
-	#W .= sqrt.((x.-xs).^2f0)
-	W .= sqrt.((x.-xs).^2f0.+(z.-zs).^2f0)
-	W = vec(W)
-	N = prod(n)
-	P = joLinearFunctionFwd_T(N, N,
-	                             v -> W.*v,
-	                             w -> W.*w,
-	                             Float32,Float32,name="Horizontal Penalty")
-	return P
+function A_mul_B!(x::judiWeights, F::joLinearFunction, y::judiVector)
+    F.m == size(y, 1) ? z = adjoint(F)*y : z = F*y
+    for j=1:length(x.weights)
+        x.weights[j] .= z.weights[j]
+    end
 end
+
+function A_mul_B!(x::judiVector, F::joLinearFunction, y::judiWeights)
+    F.m == size(y, 1) ? z = adjoint(F)*y : z = F*y
+    for j=1:length(x.data)
+        x.data[j] .= z.data[j]
+    end
+end
+
+function A_mul_B!(x::judiWeights, F::joLinearFunction, y::judiWeights)
+    F.m == size(y, 1) ? z = adjoint(F)*y : z = F*y
+    for j=1:length(x.weights)
+        x.weights[j] .= z.weights[j]
+    end
+end
+
+mul!(x::judiWeights, F::joLinearFunction, y::judiVector) = A_mul_B!(x, F, y)
+mul!(x::judiVector, F::joLinearFunction, y::judiWeights) = A_mul_B!(x, F, y)
+mul!(x::judiWeights, F::joLinearFunction, y::judiWeights) = A_mul_B!(x, F, y)
 
 n = (401, 401)   # (x,y,z) or (x,z)
 d = (5f0, 5f0)
@@ -99,10 +109,6 @@ q = judiWeights(q)
 
 PyPlot.rc("font", family="serif"); PyPlot.rc("xtick", labelsize=8); PyPlot.rc("ytick", labelsize=8)
 figure(); imshow(reshape(sqrt.(1f0./m), n[1], n[2])',extent=(0,extentx,extentz,0));
-#cb = colorbar(fraction=0.027, pad=0.04,format="%.4f");
-#cb = colorbar(fraction=0.027, pad=0.04);
-#cb[:set_label]("Velocity [km/s]", labelsize=20)
-#cb[:set_label]("Squared slowness [km^2/s^2]")
 PyPlot.scatter(xrec,zrec,marker=".",color="red",label="receivers",s=1);
 PyPlot.scatter(201*d[1],201*d[2],label="sources",marker="x",color="white");
 legend(loc=3,fontsize=8);
@@ -114,7 +120,7 @@ title("Experimental setup")
 
 q_new = F'*(F*q)
 
-q_precond = P'*F'*F*(P*q)
+q_precond = P'*F'*(F*(P*q))
 
 figure();
 subplot(2,1,1);
@@ -124,22 +130,25 @@ PyPlot.plot(abs.(fftshift(fft(wavelet))));title("wavelet in frequency domain");
 
 figure();
 subplot(2,2,1)
-imshow(reshape(q_new.data[1],n)[130:270,130:270]',vmin=-0.8*norm(q_new.data[1],Inf),vmax=0.8*norm(q_new.data[1],Inf));title("F'*F*q")
+imshow(reshape(q_new.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q_new.weights[1],Inf),vmax=0.8*norm(q_new.weights[1],Inf));title("F'*F*q")
 subplot(2,2,2)
-imshow(reshape(q_precond.data[1],n)[130:270,130:270]',vmin=-0.8*norm(q_precond.data[1],Inf),vmax=0.8*norm(q_precond.data[1],Inf));title("P'*F'*F*P*q")
+imshow(reshape(q_precond.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q_precond.weights[1],Inf),vmax=0.8*norm(q_precond.weights[1],Inf));title("P'*F'*F*P*q")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(q_new.data[1],n)')))/norm(abs.(fftshift(fft(reshape(q_new.data[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(q_new.weights[1],n)')))/norm(abs.(fftshift(fft(reshape(q_new.weights[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(q_precond.data[1],n)')))/norm(abs.(fftshift(fft(reshape(q_precond.data[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(q_precond.weights[1],n)')))/norm(abs.(fftshift(fft(reshape(q_precond.weights[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 
 d_obs = F*q
 
-maxit = 20
+maxit = 2
 
-q1,his1 = lsqr(F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
-
-q2,his2 = lsqr(F*L,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
-
+zero(x::judiWeights) = 0f0 .* x
+q1 = 0f0 .* q
+q1,his1 = lsqr!(q1,F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+q3 = 0f0 .* q
+q3,his3 = lsqr!(q3,P,q,maxiter=2,log=true,verbose=true)
+q2 = 0f0 .* q
+q2,his2 = lsqr!(q2,F*P,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=2,log=true,verbose=true)
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
@@ -167,10 +176,10 @@ legend()
 
 figure();
 subplot(2,2,1)
-imshow(reshape(q1.data[1],n)[130:270,130:270]',vmin=-0.8*norm(q1.data[1],Inf),vmax=0.8*norm(q1.data[1],Inf));title("LSQR")
+imshow(reshape(q1.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q1.weights[1],Inf),vmax=0.8*norm(q1.weights[1],Inf));title("LSQR")
 subplot(2,2,2)
-imshow(reshape(L*q2.data[1],n)[130:270,130:270]',vmin=-0.8*norm(L*q2.data[1],Inf),vmax=0.8*norm(L*q2.data[1],Inf));title("P-LSQR")
+imshow(reshape(P*q2.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(P*q2.weights[1],Inf),vmax=0.8*norm(P*q2.weights[1],Inf));title("P-LSQR")
 subplot(2,2,3)
 imshow(abs.(fftshift(fft(reshape(q1.data[1],n)'))),cmap="jet")
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(L*q2.data[1],n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape(P*q2.data[1],n)'))),cmap="jet")
