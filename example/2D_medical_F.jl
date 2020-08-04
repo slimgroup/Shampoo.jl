@@ -5,32 +5,6 @@ using SeismicPreconditioners
 import Base.zero
 using Base.Sys
 import Base.*
-*(A::joLinearFunction, v::judiWeights) = A.fop(v)
-
-function A_mul_B!(x::judiWeights, F::joLinearFunction, y::judiVector)
-    F.m == size(y, 1) ? z = adjoint(F)*y : z = F*y
-    for j=1:length(x.weights)
-        x.weights[j] .= z.weights[j]
-    end
-end
-
-function A_mul_B!(x::judiVector, F::joLinearFunction, y::judiWeights)
-    F.m == size(y, 1) ? z = adjoint(F)*y : z = F*y
-    for j=1:length(x.data)
-        x.data[j] .= z.data[j]
-    end
-end
-
-function A_mul_B!(x::judiWeights, F::joLinearFunction, y::judiWeights)
-    F.m == size(y, 1) ? z = adjoint(F)*y : z = F*y
-    for j=1:length(x.weights)
-        x.weights[j] .= z.weights[j]
-    end
-end
-
-mul!(x::judiWeights, F::joLinearFunction, y::judiVector) = A_mul_B!(x, F, y)
-mul!(x::judiVector, F::joLinearFunction, y::judiWeights) = A_mul_B!(x, F, y)
-mul!(x::judiWeights, F::joLinearFunction, y::judiWeights) = A_mul_B!(x, F, y)
 
 n = (401, 401)   # (x,y,z) or (x,z)
 d = (5f0, 5f0)
@@ -140,21 +114,18 @@ imshow(abs.(fftshift(fft(reshape(q_precond.weights[1],n)')))/norm(abs.(fftshift(
 
 d_obs = F*q
 
-maxit = 2
+maxit = 20
 
 zero(x::judiWeights) = 0f0 .* x
 q1 = 0f0 .* q
 q1,his1 = lsqr!(q1,F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
-q3 = 0f0 .* q
-q3,his3 = lsqr!(q3,P,q,maxiter=2,log=true,verbose=true)
 q2 = 0f0 .* q
-q2,his2 = lsqr!(q2,F*P,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=2,log=true,verbose=true)
+q2,his2 = lsqr!(q2,F*P,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
 u1 = 20*log.(res1./norm(d_obs))
 u2 = 20*log.(res2./norm(d_obs))
-u3 = 20*log.(res3./norm(P*d_obs))
 
 figure();
 xlabel("iterations")
@@ -178,8 +149,8 @@ figure();
 subplot(2,2,1)
 imshow(reshape(q1.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q1.weights[1],Inf),vmax=0.8*norm(q1.weights[1],Inf));title("LSQR")
 subplot(2,2,2)
-imshow(reshape(P*q2.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(P*q2.weights[1],Inf),vmax=0.8*norm(P*q2.weights[1],Inf));title("P-LSQR")
+imshow(reshape((P*q2).weights[1],n)[130:270,130:270]',vmin=-0.8*norm((P*q2).weights[1],Inf),vmax=0.8*norm((P*q2).weights[1],Inf));title("P-LSQR")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(q1.data[1],n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape(q1.weights[1],n)'))),cmap="jet")
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(P*q2.data[1],n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape((P*q2).weights[1],n)'))),cmap="jet")
