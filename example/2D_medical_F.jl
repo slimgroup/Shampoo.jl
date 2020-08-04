@@ -116,7 +116,6 @@ d_obs = F*q
 
 maxit = 20
 
-zero(x::judiWeights) = 0f0 .* x
 q1 = 0f0 .* q
 q1,his1 = lsqr!(q1,F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 q2 = 0f0 .* q
