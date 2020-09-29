@@ -21,7 +21,7 @@ m = reshape(model.m, n[1], n[2], 1, 1)
 
 # Model structure
 
-dtS = 0.5f0
+dtS = 2f0
 timeS = 3000f0
 nt = Int64(timeS/dtS)+1
 
@@ -46,7 +46,7 @@ yrec = 0f0 #2d so always 0
 
 # receiver sampling and recording time
 timeR = 3000f0   # receiver recording time [ms]
-dtR   = 0.5f0 
+dtR   = 2f0 
 # Set up receiver structure
 nsrc = 1
 recGeometry = Geometry(xrec, yrec, zrec; dt=dtR, t=timeR, nsrc=nsrc)
@@ -81,13 +81,16 @@ d_obs2 = F2*q2
 @printf("norm d_obs2 %e \n",norm(d_obs2))
 @printf("expect them to be the same - no \n")
 
-maxit = 2
+maxit = 3
 
 x1 = 0f0 .* q1
-x1,his1 = lsqr!(x1,F1,d_obs1,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+#x1,his1 = lsqr!(x1,F1,d_obs1,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+x1,his1 = lsqr(F1,d_obs1,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 
-x2 = 0f0 .* q2
-x2,his2 = lsqr!(x2,F2,d_obs2,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+#x2 = 0f0 .* q2
+#x2,his2 = lsqr!(x2,F2,d_obs2,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+x2,his2 = lsqr!(0f0 .* q2,F2,d_obs2,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+x3,his3 = lsqr!(0f0 .* q2,F2,d_obs2,atol=0f0,btol=0f0,conlim=0f0,maxiter=10,log=true,verbose=true)
 
 @printf("iterative solution difference %e expect to be 0 - no \n",norm(x1-vec(x2.weights[1]))/norm(x1))
 
@@ -96,3 +99,11 @@ subplot(1,2,1);
 imshow(reshape(x1,n));
 subplot(1,2,2);
 imshow(reshape(x2.weights[1],n));
+
+figure();
+plot([1;his1[:resnorm]/norm(d_obs1)],label="Array")
+plot([1;his2[:resnorm]/norm(d_obs2)],label="judiVector")
+legend()
+
+res1 = F1*x1-d_obs1
+res2 = F2*x2-d_obs2

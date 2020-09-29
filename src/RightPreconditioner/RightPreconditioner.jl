@@ -2,7 +2,7 @@
 # Author: Ziyi Yin, ziyi.yin@gatech.edu
 # Date: August 2020
 
-export RightPrecondF
+export RightPrecondF, RightPrecondJ
 
 ###############################################################################
 # Right precontioners for system F*P1*q = d  or J*P2*dm = F*q-F0*q
