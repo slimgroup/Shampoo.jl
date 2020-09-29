@@ -21,6 +21,7 @@ function RightPrecondJ(J::judiJacobian)
 	
 	model = J.model
 	info = J.info
+	info.nsrc = 1
 	order = -0.5
 	P = laplacian_operator(model::Model,order::Number,info::Info)
 	return P
