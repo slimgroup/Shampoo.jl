@@ -13,7 +13,7 @@ function RightPrecondF(F::judiPDEextended)
 	model = F.model
 	info = F.info
 	order = 1
-	P = laplacian_operator(model::Modelall,order::Number,info::Info)
+	P = laplacian_operator(model::Model,order::Number,info::Info)
 	return P
 end
 
@@ -22,6 +22,6 @@ function RightPrecondJ(J::judiJacobian)
 	model = J.model
 	info = J.info
 	order = -0.5
-	P = laplacian_operator(model::Modelall,order::Number,info::Info)
+	P = laplacian_operator(model::Model,order::Number,info::Info)
 	return P
 end
