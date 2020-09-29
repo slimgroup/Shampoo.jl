@@ -7,7 +7,7 @@ export laplacian_mask, apply_mask_fourier, laplacian_operator
 ###############################################################################
 # Fractional laplacian implemented by 2D Discrete Fourier Transform
 
-function laplacian_mask(model::Modelall,order::Number)
+function laplacian_mask(model::Model,order::Number)
 	
 	n = model.n
 	d = model.d
@@ -31,7 +31,7 @@ function laplacian_mask(model::Modelall,order::Number)
 	return convert(Array{Float32,2},mask)
 end
 
-function apply_mask_fourier(q::Array,mask::Array,model::Modelall,info::Info)
+function apply_mask_fourier(q::Array,mask::Array,model::Model,info::Info)
 	n = model.n
 	nsrc = info.nsrc
 	q_t = reshape(q,n[1],n[2],nsrc)
@@ -44,7 +44,7 @@ function apply_mask_fourier(q::Array,mask::Array,model::Modelall,info::Info)
 	return reshape(q_ans,size(q))
 end
 
-function apply_mask_fourier(q::judiWeights,mask::Array,model::Modelall,info::Info)
+function apply_mask_fourier(q::judiWeights,mask::Array,model::Model,info::Info)
 	n = model.n
 	nsrc = info.nsrc
 	q_ans = deepcopy(q)
@@ -57,7 +57,7 @@ function apply_mask_fourier(q::judiWeights,mask::Array,model::Modelall,info::Inf
 	return q_ans
 end
 
-function laplacian_operator(model::Modelall,order::Number,info::Info)
+function laplacian_operator(model::Model,order::Number,info::Info)
 	n = model.n
 	P = joLinearFunctionFwd_T(prod(n), prod(n),
 	                             v -> apply_mask_fourier(v,laplacian_mask(model,order),model,info),
