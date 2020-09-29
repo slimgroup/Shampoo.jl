@@ -44,6 +44,10 @@ function apply_mask_fourier(q::Array,mask::Array,model::Model,info::Info)
 	return reshape(q_ans,size(q))
 end
 
+function apply_mask_fourier(q::PhysicalParameter,mask::Array,model::Model,info::Info)
+	return apply_mask_fourier(vec(q.data),mask,model,info)
+end
+
 function apply_mask_fourier(q::judiWeights,mask::Array,model::Model,info::Info)
 	n = model.n
 	nsrc = info.nsrc
