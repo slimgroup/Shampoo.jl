@@ -75,8 +75,8 @@ function laplacian_operator(model::Model,order::Number,info::Info)
 								 Float32,Float32,name="Fractional laplacian operator")
 
 		P = joLinearFunctionFwd_T(prod(n), prod(n),
-								 v -> cg(P1,v),
-								 w -> cg(P1,w),
+								 v -> cg(P1,v,verbose=true),
+								 w -> cg(P1,w,verbose=true),
 								 Float32,Float32,name="Fractional laplacian operator")
 	end
 
