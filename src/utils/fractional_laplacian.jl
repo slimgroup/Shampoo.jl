@@ -63,9 +63,22 @@ end
 
 function laplacian_operator(model::Model,order::Number,info::Info)
 	n = model.n
-	P = joLinearFunctionFwd_T(prod(n), prod(n),
+	if order >= 0
+		P = joLinearFunctionFwd_T(prod(n), prod(n),
 	                             v -> apply_mask_fourier(v,laplacian_mask(model,order),model,info),
 	                             w -> apply_mask_fourier(w,laplacian_mask(model,order),model,info),
-	                             Float32,Float32,name="Fractional laplacian operator")
+								 Float32,Float32,name="Fractional laplacian operator")
+	else
+		P1 = joLinearFunctionFwd_T(prod(n), prod(n),
+								 v -> apply_mask_fourier(v,laplacian_mask(model,-order),model,info),
+								 w -> apply_mask_fourier(w,laplacian_mask(model,-order),model,info),
+								 Float32,Float32,name="Fractional laplacian operator")
+
+		P = joLinearFunctionFwd_T(prod(n), prod(n),
+								 v -> cg(P1,v),
+								 w -> cg(P1,w),
+								 Float32,Float32,name="Fractional laplacian operator")
+	end
+
 	return P
 end
