@@ -24,8 +24,11 @@ function laplacian_mask(model::Model,order::Number)
 	if order >= 0	# differentiation
 		mask = (2*pi*f).^order
 	else # integration - warning: null space of low frequency
-		delta = dk/10f0
-		mask = (2*pi*(f.+delta)).^order	# damped by delta
+		#delta = dk/10f0
+		#mask = (2*pi*(f.+delta)).^order	# damped by delta
+		mask[[1:center_x-1;center_x+1:end],:] = (2*pi*f[[1:center_x-1;center_x+1:end],:]).^order
+		mask[center_x,[1:center_z-1;center_z+1:end]] = (2*pi*f[center_x,[1:center_z-1;center_z+1:end]]).^order
+		mask[center_x,center_z] = 1
 	end
 	
 	return convert(Array{Float32,2},mask)
@@ -63,7 +66,8 @@ end
 
 function laplacian_operator(model::Model,order::Number,info::Info)
 	n = model.n
-	if order >= 0
+	#if order >= 0
+	if true
 		P = joLinearFunctionFwd_T(prod(n), prod(n),
 	                             v -> apply_mask_fourier(v,laplacian_mask(model,order),model,info),
 	                             w -> apply_mask_fourier(w,laplacian_mask(model,order),model,info),
