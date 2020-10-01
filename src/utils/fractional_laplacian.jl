@@ -26,6 +26,8 @@ function laplacian_mask(model::Model,order::Number)
 	else # integration - warning: null space of low frequency
 		#delta = dk/10f0
 		#mask = (2*pi*(f.+delta)).^order	# damped by delta
+		center_x = Int(round(center_x))
+		center_z = Int(round(center_z))
 		mask[[1:center_x-1;center_x+1:end],:] = (2*pi*f[[1:center_x-1;center_x+1:end],:]).^order
 		mask[center_x,[1:center_z-1;center_z+1:end]] = (2*pi*f[center_x,[1:center_z-1;center_z+1:end]]).^order
 		mask[center_x,center_z] = 1
