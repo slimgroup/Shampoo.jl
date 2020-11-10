@@ -14,7 +14,7 @@ function LeftPrecondJ(J::judiJacobian)
 
 	x    = zeros(Int64,nt,1);
 	x[1] = 1;
-	y    = convert(Array{Float32,2},fgl_deriv(0.5,x,1));	# half integration
+	y    = convert(Array{Float32,2},fgl_deriv(-0.5,x,1));	# half integration
 	C    = joConvolve(nt,1,y[:];DDT=Float32,RDT=Float32);
 
 	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
