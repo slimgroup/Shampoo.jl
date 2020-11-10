@@ -30,7 +30,7 @@ function integral_shot(C::joLinearFunction,d_obs::judiVector)
 	nsrc = d_obs.nsrc
 	for i = 1:nsrc
 		for j = 1:nrec
-			d_out.data[i][:,j] = C*d_lin.data[i][:,j]
+			d_out.data[i][:,j] = C*d_obs.data[i][:,j]
 		end
 	end
 	return d_out
