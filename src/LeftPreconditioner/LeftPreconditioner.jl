@@ -17,7 +17,7 @@ function LeftPrecondJ(J::judiJacobian)
 	y    = convert(Array{Float32,2},fgl_deriv(0.5,x,1));	# half integration
 	C    = joConvolve(nt,1,y[:];DDT=Float32,RDT=Float32);
 
-	P = joLinearFunctionFwd_T(prod(n), prod(n),
+	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
 	                             v -> integral_shot(C,v),
 	                             w -> integral_shot(C',w),
 								 Float32,Float32,name="Fractional integration operator")
