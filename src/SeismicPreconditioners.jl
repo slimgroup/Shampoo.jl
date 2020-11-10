@@ -1,7 +1,7 @@
 __precompile__()
 module SeismicPreconditioners
 
-using JUDI.TimeModeling, JOLI, LinearAlgebra, FFTW, IterativeSolvers
+using JUDI.TimeModeling, JOLI, LinearAlgebra, FFTW, IterativeSolvers, SpecialFunctions
 
 include("RightPreconditioner/RightPreconditioner.jl")
 
