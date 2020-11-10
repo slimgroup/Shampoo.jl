@@ -13,7 +13,7 @@ function LeftPrecondJ(J::judiJacobian)
 	nt = J.recGeometry.nt[1]
 	x    = zeros(Int64,nt,1);
 	x[1] = 1;
-	y    = convert(Array{Float32,2},fgl_deriv(0.5,x,1));
+	y    = convert(Array{Float32,2},fgl_deriv(0.5,x,1));	# half integration
 	C    = joConvolve(nt,1,y[:]);
 	return C
 end
