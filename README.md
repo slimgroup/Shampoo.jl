@@ -15,3 +15,7 @@ Please use the command below to install the package
 ```julia
 julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/slimgroup/SeismicPreconditioners"))'
 ```
+
+### Author
+
+Ziyi Yin, ziyi.yin@gatech.edu
