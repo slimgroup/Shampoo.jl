@@ -25,7 +25,7 @@ model0 = Model(n, d, o, m0)
 # Model structure
 
 dtS = 1f0
-timeS = 1500f0
+timeS = 2000f0
 nt = Int64(timeS/dtS)+1
 
 fmin = 10f0
@@ -48,7 +48,7 @@ zrec = range(14f0, stop=14f0, length=nrec)
 timeR = timeS   # receiver recording time [ms]
 dtR   = dtS 
 # Set up receiver structure
-nsrc = 8
+nsrc = 11
 
 xsrc = convertToCell(range(0f0, stop=Float32((n[1]-1)*d[1]), length=nsrc))
 # xsrc = convertToCell(range((n[1]-1)*d[1]/2f0, stop=(n[1]-1)*d[1]/2f0, length=nsrc))
@@ -58,25 +58,18 @@ zsrc = convertToCell(range(9f0, stop=9f0, length=nsrc))
 
 recGeometry = Geometry(xrec, yrec, zrec; dt=dtR, t=timeR, nsrc=nsrc)
 
-srcGeometry = Geometry(convertToCell(xsrc), convertToCell(ysrc), convertToCell(zsrc); dt=dtS, t=timeS)
+srcGeometry = Geometry(xsrc, ysrc, zsrc; dt=dtS, t=timeS)
 #srcGeometry = Geometry(xsrc, ysrc, zsrc; dt=dtS, t=timeS)
 
 q = judiVector(srcGeometry, wavelet)
 
 # Set up info structure for linear operators
-ntComp = get_computational_nt(recGeometry, model0)
+ntComp = get_computational_nt(srcGeometry, recGeometry, model)
 info = Info(prod(n), nsrc, ntComp)
 
 opt = Options(free_surface=false,isic=false)
-
-Pr  = judiProjection(info, recGeometry)
-F0  = judiModeling(info, model0; options=opt) # modeling operator background model
-Ps = judiProjection(info, srcGeometry)
-# Combined operators
-F0 = Pr*F0*adjoint(Ps)
-
+F0 = judiModeling(info, model0, srcGeometry, recGeometry; options=opt)
 J = judiJacobian(F0, q)
-P = LeftPrecondJ(J)
 
 PyPlot.rc("font", family="serif"); PyPlot.rc("xtick", labelsize=8); PyPlot.rc("ytick", labelsize=8)
 figure(); imshow(reshape(sqrt.(1f0./m), n[1], n[2])',extent=(0,extentx,extentz,0));
@@ -87,25 +80,30 @@ xlabel("Lateral position [m]", fontsize=8);ylabel("Horizontal position [m]", fon
 fig = PyPlot.gcf();
 title("Experimental setup")
 
-######################################### Set up JUDI operators ###################################
+# left preconditioners
+P = LeftPrecondJ(J)
+H = HammingPrecond(J)
 
+# right preconditioners
 S = judiDepthScaling(model0)
 
-d_lin = J*S*dm
+d_orig = J*S*dm
 
-dm1 = S'*J'*d_lin
+d_lin = H*d_orig
+
+dm1 = S'*J'*H'*d_lin
 
 d_lin_new = P*d_lin
 
 figure();
 subplot(1,2,1);
-imshow(d_lin.data[4],cmap="Greys",vmin=-0.1*norm(d_lin.data[4],Inf),vmax=0.1*norm(d_lin.data[4],Inf));
+imshow(d_lin.data[6],cmap="Greys",vmin=-0.1*norm(d_lin.data[4],Inf),vmax=0.1*norm(d_lin.data[4],Inf));
 title("shot record");
 subplot(1,2,2);
-imshow(d_lin_new.data[4],cmap="Greys",vmin=-0.1*norm(d_lin_new.data[4],Inf),vmax=0.1*norm(d_lin_new.data[4],Inf));
+imshow(d_lin_new.data[6],cmap="Greys",vmin=-0.1*norm(d_lin_new.data[4],Inf),vmax=0.1*norm(d_lin_new.data[4],Inf));
 title("integrated shot record");
 
-dm2 = S'*J'*P'*P*J*S*dm
+dm2 = S'*J'*H'*P'*d_lin_new
 
 figure();
 subplot(2,1,1);
@@ -115,31 +113,34 @@ PyPlot.plot(abs.(fftshift(fft(wavelet))));title("wavelet in frequency domain");
 
 figure();
 subplot(2,2,1)
-imshow(reshape(S*dm1,n)');title("J'*J*dm")
+imshow(reshape(S*dm1,n)');title("S'*J'*J*S*dm")
 subplot(2,2,2)
-imshow(reshape(S*dm2,n)');title("P'*J'*J*P*dm")
+imshow(reshape(S*dm2,n)');title("S'*J'*P'*P*J*S*dm")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(S*dm1,n)')))/norm(abs.(fftshift(fft(reshape(S*dm1,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(dm1,n)')))/norm(abs.(fftshift(fft(reshape(dm1,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(S*dm2,n)')))/norm(abs.(fftshift(fft(reshape(S*dm2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(dm2,n)')))/norm(abs.(fftshift(fft(reshape(dm2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 
 maxit = 5
 
 x1 = 0f0 .* dm
-x1,his1 = lsqr!(x1,J,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+J1 = H*J*S
+x1,his1 = lsqr!(x1,J1,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+
 x2 = 0f0 .* dm
-x2,his2 = lsqr!(x2,P*J,P*d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+J2 = P*H*J*S
+x2,his2 = lsqr!(x2,J2,d_lin_new,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
 u1 = 20*log.(res1./norm(d_lin))
-u2 = 20*log.(res2./norm(P*d_lin))
+u2 = 20*log.(res2./norm(d_lin_new))
 
 figure();
 xlabel("iterations")
 ylabel("ratio")
 PyPlot.plot(res1/norm(d_lin),label="LSQR")
-PyPlot.plot(res2/norm(P*d_lin),label="P-LSQR")
+PyPlot.plot(res2/norm(d_lin_new),label="P-LSQR")
 title("normalized least squares residual")
 legend()
 
