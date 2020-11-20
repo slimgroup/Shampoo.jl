@@ -1,4 +1,4 @@
-using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI, DSP
+using PyPlot, JUDI.TimeModeling, SegyIO, LinearAlgebra, FFTW, DSP, SpecialFunctions, JOLI
 using IterativeSolvers
 
 using SeismicPreconditioners
@@ -19,8 +19,8 @@ m = convert(Array{Float32,2},(1f0 ./ v).^2)	# true model
 m0 = convert(Array{Float32,2},(1f0 ./ v0).^2)
 dm = vec(m-m0)
 
-model = Model(n, d, o, m)
-model0 = Model(n, d, o, m0)
+model = Model(n, d, o, m; nb = 200)
+model0 = Model(n, d, o, m0; nb = 200)
 
 # Model structure
 
@@ -31,7 +31,7 @@ nt = Int64(timeS/dtS)+1
 fmin = 10f0
 fmax = 80f0
 cfreqs = (fmin, fmin+5f0, fmax-5f0, fmax) # corner frequencies
-wavelet = cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hamming)
+wavelet = cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hanning)
 #wavelet = ricker_wavelet(timeS, dtS, 0.03f0)
 
 ################################### Source/receiver geometry ######################################
@@ -90,20 +90,23 @@ S = judiDepthScaling(model0)
 d_orig = J*S*dm
 
 d_lin = H*d_orig
+#d_lin = d_orig
 
 dm1 = S'*J'*H'*d_lin
+#dm1 = S'*J'*d_lin
 
 d_lin_new = P*d_lin
 
 figure();
 subplot(1,2,1);
-imshow(d_lin.data[6],cmap="Greys",vmin=-0.1*norm(d_lin.data[4],Inf),vmax=0.1*norm(d_lin.data[4],Inf));
+imshow(d_lin.data[6],cmap="Greys",vmin=-0.1*norm(d_lin.data[6],Inf),vmax=0.1*norm(d_lin.data[6],Inf));
 title("shot record");
 subplot(1,2,2);
-imshow(d_lin_new.data[6],cmap="Greys",vmin=-0.1*norm(d_lin_new.data[4],Inf),vmax=0.1*norm(d_lin_new.data[4],Inf));
+imshow(d_lin_new.data[6],cmap="Greys",vmin=-0.1*norm(d_lin_new.data[6],Inf),vmax=0.1*norm(d_lin_new.data[6],Inf));
 title("integrated shot record");
 
 dm2 = S'*J'*H'*P'*d_lin_new
+#dm2 = S'*J'*P'*d_lin_new
 
 figure();
 subplot(2,1,1);
@@ -121,15 +124,20 @@ imshow(abs.(fftshift(fft(reshape(dm1,n)')))/norm(abs.(fftshift(fft(reshape(dm1,n
 subplot(2,2,4)
 imshow(abs.(fftshift(fft(reshape(dm2,n)')))/norm(abs.(fftshift(fft(reshape(dm2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 
+print(stop)
+
 maxit = 5
 
 x1 = 0f0 .* dm
-J1 = H*J*S
+#J1 = H*J*S
+J1 = J*S
 x1,his1 = lsqr!(x1,J1,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 
 x2 = 0f0 .* dm
-J2 = P*H*J*S
+#J2 = P*H*J*S
+J2 = P*J*S
 x2,his2 = lsqr!(x2,J2,d_lin_new,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 

@@ -1,5 +1,6 @@
 export hamm_op, integral_shot
 
+#=
 function hamm_op(d_obs::judiVector{vDT},offset::Array) where {vDT}
     d_out = deepcopy(d_obs)
     nsrc, nrec = size(offset)
@@ -7,6 +8,17 @@ function hamm_op(d_obs::judiVector{vDT},offset::Array) where {vDT}
     hamm_weights = convert(Array{vDT},0.54 .- 0.46*cos.(2*pi*offset/max_offset))
     for i = 1:nsrc
         d_out.data[i] = d_obs.data[i] .* sqrt.(hamm_weights[i,:]')
+    end
+    return d_out
+end
+=#
+
+function hamm_op(d_obs::judiVector{vDT},offset::Array) where {vDT}
+    d_out = deepcopy(d_obs)
+    nsrc, nrec = size(offset)
+    hamm_weights = convert(Array{vDT},reshape(hamming(nrec), 1, :))
+    for i = 1:nsrc
+        d_out.data[i] = d_obs.data[i] .* sqrt.(hamm_weights)
     end
     return d_out
 end
