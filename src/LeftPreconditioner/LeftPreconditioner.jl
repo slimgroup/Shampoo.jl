@@ -23,6 +23,21 @@ function LeftPrecondJ(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 								 ARDT,ARDT,name="Fractional integration operator")
 end
 
+function CumsumPrecondJ(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
+	nsrc = length(J.srcGeometry.xloc)
+	nt = J.recGeometry.nt[1]
+
+	C = joLinearFunctionFwd_T(nt, nt,
+		v -> cumsum(v,dims=1),
+		w -> reverse(cumsum(reverse(v,dims=1),dims=1),dims=1),
+		ARDT,ARDT,name="cumsum operator")
+
+	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
+	                             v -> integral_shot(C,v),
+	                             w -> integral_shot(C',w),
+								 ARDT,ARDT,name="Fractional integration operator")
+end
+
 function HammingPrecond(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 	nsrc = length(J.srcGeometry.xloc)
 	nrec = length(J.recGeometry.xloc[1])
