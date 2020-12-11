@@ -3,6 +3,8 @@ module SeismicPreconditioners
 
 using JUDI.TimeModeling, JOLI, LinearAlgebra, FFTW, SpecialFunctions, DSP
 
+export CumsumOp,DiffOp,HammingOp,FractionalIntegrationOp,FractionalLaplacianOp
+
 # utilities
 include("utils/apply_frac_integral.jl")
 include("utils/Filter_freq_band.jl")
@@ -15,7 +17,6 @@ include("utils/wavelet.jl")
 # left preconditioners: work in data domain
 
 function CumsumOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
-	nsrc = length(J.srcGeometry.xloc)
 	nt = J.recGeometry.nt[1]
 
 	C = joLinearFunctionFwd_T(nt, nt,
@@ -30,15 +31,28 @@ function CumsumOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 end
 
 function DiffOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
-	nsrc = length(J.srcGeometry.xloc)
 	nt = J.recGeometry.nt[1]
 
 	C = joLinearFunctionFwd_T(nt, nt,
 		v -> [diff(v,dims=1);zeros(ARDT,1,size(v,2))],
-		w -> reverse([diff(cumsum(reverse(v,dims=1),dims=1));zeros(ARDT,1,size(v,2))],dims=1),
+		w -> reverse([diff(cumsum(reverse(w,dims=1),dims=1));zeros(ARDT,1,size(w,2))],dims=1),
 		ARDT,ARDT,name="diff operator")
 
 	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
+	                             v -> apply_frac_integral(C,v),
+	                             w -> apply_frac_integral(C',w),
+								 ARDT,ARDT,name="Diff operator")
+end
+
+function DiffOp(F::judiPDEextended{ADDT,ARDT}) where {ADDT,ARDT}
+	nt = F.recGeometry.nt[1]
+
+	C = joLinearFunctionFwd_T(nt, nt,
+		v -> [diff(v,dims=1);zeros(ARDT,1,size(v,2))],
+		w -> reverse([diff(cumsum(reverse(w,dims=1),dims=1));zeros(ARDT,1,size(w,2))],dims=1),
+		ARDT,ARDT,name="diff operator")
+
+	P = joLinearFunctionFwd_T(size(F,1), size(F,1),
 	                             v -> apply_frac_integral(C,v),
 	                             w -> apply_frac_integral(C',w),
 								 ARDT,ARDT,name="Diff operator")
@@ -72,6 +86,20 @@ function FractionalIntegrationOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 								 ARDT,ARDT,name="Fractional integration operator")
 end
 
+function FractionalIntegrationOp(F::judiPDEextended{ADDT,ARDT}) where {ADDT,ARDT}
+	nt = F.recGeometry.nt[1]
+
+	x    = zeros(Int64,nt,1);
+	x[1] = 1;
+	y    = convert(Array{ARDT,2},fgl_deriv(0.95,x,1));	# half integration
+	C    = joConvolve(nt,1,y[:];DDT=ARDT,RDT=ARDT);
+
+	P = joLinearFunctionFwd_T(size(F,1), size(F,1),
+	                             v -> apply_frac_integral(C,v),
+	                             w -> apply_frac_integral(C',w),
+								 ARDT,ARDT,name="Fractional integration operator")
+end
+
 # right preconditioners: work in model domain
 
 function FractionalLaplacianOp(F::judiPDEextended,order::Number)
@@ -88,4 +116,6 @@ function FractionalLaplacianOp(J::judiJacobian,order::Number)
 	info1.nsrc = 1
 	P = laplacian_operator(model::Model,order::Number,info1::Info)
 	return P
+end
+
 end

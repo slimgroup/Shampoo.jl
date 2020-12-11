@@ -2,9 +2,6 @@ using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI, DSP
 using IterativeSolvers
 
 using SeismicPreconditioners
-import Base.zero
-using Base.Sys
-import Base.*
 
 n = (401, 401)   # (x,y,z) or (x,z)
 d = (5f0, 5f0)
@@ -20,18 +17,16 @@ m = convert(Array{Float32,2},(1f0 ./ v).^2)	# true model
 
 model = Model(n, d, o, m; nb = 200)
 
-m = reshape(model.m, n[1], n[2], 1, 1)
-
 # Model structure
 
-dtS = 0.5f0
+dtS = 1f0
 timeS = 3000f0
 nt = Int64(timeS/dtS)+1
 
 fmin = 10f0
 fmax = 80f0
 cfreqs = (fmin, fmin+10f0, fmax-10f0, fmax) # corner frequencies
-wavelet = cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hamming)
+wavelet = reshape(cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hamming),nt,1)
 #wavelet = ricker_wavelet(timeS, dtS, 0.04f0)[:,1]
 
 ################################### Source/receiver geometry ######################################
@@ -56,7 +51,7 @@ yrec = 0f0 #2d so always 0
 
 # receiver sampling and recording time
 timeR = 3000f0   # receiver recording time [ms]
-dtR   = 0.5f0 
+dtR   = 1f0 
 # Set up receiver structure
 nsrc = 1
 recGeometry = Geometry(xrec, yrec, zrec; dt=dtR, t=timeR, nsrc=nsrc)
@@ -74,7 +69,7 @@ Pw = judiLRWF(info, wavelet)
 # Combined operators
 F = Pr*F*adjoint(Pw)
 
-P = RightPrecondF(F)
+P = FractionalIntegrationOp(F)
 ######################################### Neural network ##########################################
 # Extended modeling CNN layers
 q = zeros(Float32,n)
@@ -92,9 +87,10 @@ title("Experimental setup")
 
 ######################################### Set up JUDI operators ###################################
 
-q_new = F'*(F*q)
+d_obs = F*q
+q_new = F'*d_obs
 
-q_precond = P'*F'*(F*(P*q))
+q_precond = F'*P'*P*d_obs
 
 figure();
 subplot(2,1,1);
@@ -106,20 +102,18 @@ figure();
 subplot(2,2,1)
 imshow(reshape(q_new.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q_new.weights[1],Inf),vmax=0.8*norm(q_new.weights[1],Inf));title("F'*F*q")
 subplot(2,2,2)
-imshow(reshape(q_precond.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q_precond.weights[1],Inf),vmax=0.8*norm(q_precond.weights[1],Inf));title("P'*F'*F*P*q")
+imshow(reshape(q_precond.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q_precond.weights[1],Inf),vmax=0.8*norm(q_precond.weights[1],Inf));title("F'*P'*P*F*q")
 subplot(2,2,3)
 imshow(abs.(fftshift(fft(reshape(q_new.weights[1],n)')))/norm(abs.(fftshift(fft(reshape(q_new.weights[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
 imshow(abs.(fftshift(fft(reshape(q_precond.weights[1],n)')))/norm(abs.(fftshift(fft(reshape(q_precond.weights[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
-
-d_obs = F*q
 
 maxit = 20
 
 q1 = 0f0 .* q
 q1,his1 = lsqr!(q1,F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 q2 = 0f0 .* q
-q2,his2 = lsqr!(q2,F*P,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+q2,his2 = lsqr!(q2,P*F,P*d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
@@ -148,8 +142,8 @@ figure();
 subplot(2,2,1)
 imshow(reshape(q1.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q1.weights[1],Inf),vmax=0.8*norm(q1.weights[1],Inf));title("LSQR")
 subplot(2,2,2)
-imshow(reshape((P*q2).weights[1],n)[130:270,130:270]',vmin=-0.8*norm((P*q2).weights[1],Inf),vmax=0.8*norm((P*q2).weights[1],Inf));title("P-LSQR")
+imshow(reshape(q2.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q2.weights[1],Inf),vmax=0.8*norm(q2.weights[1],Inf));title("P-LSQR")
 subplot(2,2,3)
 imshow(abs.(fftshift(fft(reshape(q1.weights[1],n)'))),cmap="jet")
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape((P*q2).weights[1],n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape(q2.weights[1],n)'))),cmap="jet")
