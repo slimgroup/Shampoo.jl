@@ -24,9 +24,24 @@ function CumsumOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 		ARDT,ARDT,name="cumsum operator")
 
 	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
-	                             v -> integral_shot(C,v),
-	                             w -> integral_shot(C',w),
-								 ARDT,ARDT,name="Fractional integration operator")
+	                             v -> apply_frac_integral(C,v),
+	                             w -> apply_frac_integral(C',w),
+								 ARDT,ARDT,name="Cumsum operator")
+end
+
+function DiffOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
+	nsrc = length(J.srcGeometry.xloc)
+	nt = J.recGeometry.nt[1]
+
+	C = joLinearFunctionFwd_T(nt, nt,
+		v -> [diff(v,dims=1);zeros(ARDT,1,size(v,2))],
+		w -> reverse([diff(cumsum(reverse(v,dims=1),dims=1));zeros(ARDT,1,size(v,2))],dims=1),
+		ARDT,ARDT,name="diff operator")
+
+	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
+	                             v -> apply_frac_integral(C,v),
+	                             w -> apply_frac_integral(C',w),
+								 ARDT,ARDT,name="Diff operator")
 end
 
 function HammingOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
