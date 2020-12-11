@@ -48,7 +48,7 @@ zrec = range(14f0, stop=14f0, length=nrec)
 timeR = timeS   # receiver recording time [ms]
 dtR   = dtS 
 # Set up receiver structure
-nsrc = 11
+nsrc = 6
 
 xsrc = convertToCell(range(0f0, stop=Float32((n[1]-1)*d[1]), length=nsrc))
 # xsrc = convertToCell(range((n[1]-1)*d[1]/2f0, stop=(n[1]-1)*d[1]/2f0, length=nsrc))
@@ -81,7 +81,7 @@ fig = PyPlot.gcf();
 title("Experimental setup")
 
 # left preconditioners
-P = LeftPrecondJ(J)
+P = CumsumPrecondJ(J)
 H = HammingPrecond(J)
 
 # right preconditioners
@@ -89,11 +89,11 @@ S = judiDepthScaling(model0)
 
 d_orig = J*S*dm
 
-d_lin = H*d_orig
+d_lin = d_orig
 #d_lin = d_orig
 
-dm1 = S'*J'*H'*d_lin
-#dm1 = S'*J'*d_lin
+#dm1 = S'*J'*H'*d_lin
+dm1 = S'*J'*d_lin
 
 d_lin_new = P*d_lin
 
@@ -105,8 +105,8 @@ subplot(1,2,2);
 imshow(d_lin_new.data[6],cmap="Greys",vmin=-0.1*norm(d_lin_new.data[6],Inf),vmax=0.1*norm(d_lin_new.data[6],Inf));
 title("integrated shot record");
 
-dm2 = S'*J'*H'*P'*d_lin_new
-#dm2 = S'*J'*P'*d_lin_new
+#dm2 = S'*J'*H'*P'*d_lin_new
+dm2 = S'*J'*d_lin_new
 
 figure();
 subplot(2,1,1);
