@@ -3,15 +3,16 @@ module SeismicPreconditioners
 
 using JUDI.TimeModeling, JOLI, LinearAlgebra, FFTW, SpecialFunctions, DSP
 
-include("RightPreconditioner/RightPreconditioner.jl")
-
-include("LeftPreconditioner/LeftPreconditioner.jl")
-include("LeftPreconditioner/LeftUtils.jl")
-
+# utilities
+include("utils/apply_frac_integral.jl")
+include("utils/Filter_freq_band.jl")
+include("utils/fractional_integration.jl")
 include("utils/fractional_laplacian.jl")
+include("utils/hamming_operator.jl")
 include("utils/joConvolve.jl")
 include("utils/wavelet.jl")
-include("utils/Filter_freq_band.jl")
+
+# left preconditioners: work in data domain
 
 function CumsumOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 	nsrc = length(J.srcGeometry.xloc)
@@ -56,6 +57,7 @@ function FractionalIntegrationOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 								 ARDT,ARDT,name="Fractional integration operator")
 end
 
+# right preconditioners: work in model domain
 
 function FractionalLaplacianOp(F::judiPDEextended,order::Number)
 	model = F.model

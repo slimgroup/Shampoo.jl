@@ -2,11 +2,11 @@
 
 ### Overview
 
-[JUDI]:https://github.com/slimgroup/JUDI.jl
+[JOLI]:https://github.com/slimgroup/JOLI.jl
 
-Seismic preconditioners for operators F and J in the way of correcting their orders.
+This repository includes wave equation preconditioners for operators ``F`` (wave propagation) and ``J`` (born modeling) in the way of correcting their orders. The choices of preconditioners are in ``src/SeismicPreconditioners.jl``, which contains both data domain (left) preconditioners and model domain (right) preconditioners. To choose a preconditioner, please see the documentation in ``src/SeismicPreconditioners.jl``.
 
-It is based on julia language and [JUDI] package.
+The preconditioning operators are designed as [JOLI] linear operators. The package dependencies can be found in ``Project.toml``.
 
 ### Installation
 
@@ -17,5 +17,7 @@ julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/slimgroup/S
 ```
 
 ### Author
+
+If you have any question about the package, please do not hesitate to contact
 
 Ziyi Yin, ziyi.yin@gatech.edu

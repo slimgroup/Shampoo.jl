@@ -1,5 +1,5 @@
-# Fractional Laplacians - fourier
-# Author: Ziyi Yin, ziyi.yin@gatech.edu
+# Band-pass wavelet
+# Author: Gabrio Rizzuti; Ziyi Yin, ziyi.yin@gatech.edu
 # Date: August 2020
 
 export cfreqfilt, cfreq_wavelet
