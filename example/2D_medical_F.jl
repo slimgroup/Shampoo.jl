@@ -69,7 +69,7 @@ Pw = judiLRWF(info, wavelet)
 # Combined operators
 F = Pr*F*adjoint(Pw)
 
-P = FractionalIntegrationOp(F)
+P = FractionalIntegrationOp(nt,nsrc,nxrec,0.95)
 ######################################### Neural network ##########################################
 # Extended modeling CNN layers
 q = zeros(Float32,n)

@@ -100,6 +100,19 @@ function FractionalIntegrationOp(F::judiPDEextended{ADDT,ARDT}) where {ADDT,ARDT
 								 ARDT,ARDT,name="Fractional integration operator")
 end
 
+function FractionalIntegrationOp(nt::Int,nsrc::Int,nrec::Int,order::Number;DDT=Float32)
+
+	x    = zeros(Int64,nt,1);
+	x[1] = 1;
+	y    = convert(Array{DDT,2},fgl_deriv(order,x,1));	# fractional integration
+	C    = joConvolve(nt,1,y[:];DDT=DDT,RDT=DDT);
+
+	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
+	                             v -> apply_frac_integral(C,v),
+	                             w -> apply_frac_integral(C',w),
+								 DDT,DDT,name="Fractional integration operator")
+end
+
 # right preconditioners: work in model domain
 
 function FractionalLaplacianOp(F::judiPDEextended,order::Number)
