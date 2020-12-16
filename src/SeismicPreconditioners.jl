@@ -6,56 +6,32 @@ using JUDI.TimeModeling, JOLI, LinearAlgebra, FFTW, SpecialFunctions, DSP
 export CumsumOp,DiffOp,HammingOp,FractionalIntegrationOp,FractionalLaplacianOp
 
 # utilities
-include("utils/apply_frac_integral.jl")
+include("utils/adj_diff_cumsum.jl")
+include("utils/fgl_deriv.jl")
 include("utils/Filter_freq_band.jl")
-include("utils/fractional_integration.jl")
-include("utils/fractional_laplacian.jl")
-include("utils/hamming_operator.jl")
 include("utils/joConvolve.jl")
 include("utils/wavelet.jl")
 
+# operators
+include("operators/fractional_integration.jl")
+include("operators/fractional_laplacian.jl")
+include("operators/hamming_operator.jl")
+
 # left preconditioners: work in data domain
 
-function CumsumOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
-	nt = J.recGeometry.nt[1]
-
-	C = joLinearFunctionFwd_T(nt, nt,
-		v -> cumsum(v,dims=1),
-		w -> reverse(cumsum(reverse(v,dims=1),dims=1),dims=1),
-		ARDT,ARDT,name="cumsum operator")
-
-	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
-	                             v -> apply_frac_integral(C,v),
-	                             w -> apply_frac_integral(C',w),
-								 ARDT,ARDT,name="Cumsum operator")
+function CumsumOp(nt::Int,nsrc::Int,nrec::Int;DDT=Float32)
+	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
+	                             v -> cumsum(v),
+	                             w -> adjoint_cumsum(w),
+								 DDT,DDT,name="cumsum operator")
 end
 
-function DiffOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
-	nt = J.recGeometry.nt[1]
-
-	C = joLinearFunctionFwd_T(nt, nt,
-		v -> [diff(v,dims=1);zeros(ARDT,1,size(v,2))],
-		w -> reverse([diff(cumsum(reverse(w,dims=1),dims=1));zeros(ARDT,1,size(w,2))],dims=1),
-		ARDT,ARDT,name="diff operator")
-
-	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
-	                             v -> apply_frac_integral(C,v),
-	                             w -> apply_frac_integral(C',w),
-								 ARDT,ARDT,name="Diff operator")
-end
-
-function DiffOp(F::judiPDEextended{ADDT,ARDT}) where {ADDT,ARDT}
-	nt = F.recGeometry.nt[1]
-
-	C = joLinearFunctionFwd_T(nt, nt,
-		v -> [diff(v,dims=1);zeros(ARDT,1,size(v,2))],
-		w -> reverse([diff(cumsum(reverse(w,dims=1),dims=1));zeros(ARDT,1,size(w,2))],dims=1),
-		ARDT,ARDT,name="diff operator")
-
-	P = joLinearFunctionFwd_T(size(F,1), size(F,1),
-	                             v -> apply_frac_integral(C,v),
-	                             w -> apply_frac_integral(C',w),
-								 ARDT,ARDT,name="Diff operator")
+function DiffOp(nt::Int,nsrc::Int,nrec::Int;order=1,DDT=Float32)
+	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
+	                             v -> diff(v),
+	                             w -> adjoint_diff(w),
+								 DDT,DDT,name="diff operator")
+	return P
 end
 
 function HammingOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
@@ -69,48 +45,17 @@ function HammingOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 								v -> hamm_op(v,offset),
 								w -> hamm_op(w,offset),
 								ARDT,ARDT,name="Hamming operator")
-end
-
-function FractionalIntegrationOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
-	nsrc = length(J.srcGeometry.xloc)
-	nt = J.recGeometry.nt[1]
-
-	x    = zeros(Int64,nt,1);
-	x[1] = 1;
-	y    = convert(Array{ARDT,2},fgl_deriv(-0.5,x,1));	# half integration
-	C    = joConvolve(nt,1,y[:];DDT=ARDT,RDT=ARDT);
-
-	P = joLinearFunctionFwd_T(size(J,1), size(J,1),
-	                             v -> apply_frac_integral(C,v),
-	                             w -> apply_frac_integral(C',w),
-								 ARDT,ARDT,name="Fractional integration operator")
-end
-
-function FractionalIntegrationOp(F::judiPDEextended{ADDT,ARDT}) where {ADDT,ARDT}
-	nt = F.recGeometry.nt[1]
-
-	x    = zeros(Int64,nt,1);
-	x[1] = 1;
-	y    = convert(Array{ARDT,2},fgl_deriv(0.95,x,1));	# half integration
-	C    = joConvolve(nt,1,y[:];DDT=ARDT,RDT=ARDT);
-
-	P = joLinearFunctionFwd_T(size(F,1), size(F,1),
-	                             v -> apply_frac_integral(C,v),
-	                             w -> apply_frac_integral(C',w),
-								 ARDT,ARDT,name="Fractional integration operator")
+	return P
 end
 
 function FractionalIntegrationOp(nt::Int,nsrc::Int,nrec::Int,order::Number;DDT=Float32)
 
-	x    = zeros(Int64,nt,1);
-	x[1] = 1;
-	y    = convert(Array{DDT,2},fgl_deriv(order,x,1));	# fractional integration
-	C    = joConvolve(nt,1,y[:];DDT=DDT,RDT=DDT);
-
+	C = frac_int(nt,order;DDT=DDT)
 	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
 	                             v -> apply_frac_integral(C,v),
 	                             w -> apply_frac_integral(C',w),
 								 DDT,DDT,name="Fractional integration operator")
+	return P
 end
 
 # right preconditioners: work in model domain
