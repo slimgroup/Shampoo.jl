@@ -78,7 +78,7 @@ Ps = judiProjection(info, srcGeometry)
 F0 = Pr*F0*adjoint(Ps)
 
 J = judiJacobian(F0, q)
-P = RightPrecondJ(J)
+P = FractionalIntegrationOp(nt,nsrc,nxrec,-0.5)
 
 PyPlot.rc("font", family="serif"); PyPlot.rc("xtick", labelsize=8); PyPlot.rc("ytick", labelsize=8)
 figure(); imshow(reshape(sqrt.(1f0./m), n[1], n[2])',extent=(0,extentx,extentz,0));
@@ -95,7 +95,7 @@ d_lin = J*dm
 
 dm1 = J'*d_lin
 
-dm2 = P'*J'*J*P*dm
+dm2 = J'*P'*P*J*dm
 
 figure();
 subplot(2,1,1);
@@ -107,46 +107,29 @@ figure();
 subplot(2,2,1)
 imshow(dm1.data');title("J'*J*dm")
 subplot(2,2,2)
-imshow(reshape(dm2,n)');title("P'*J'*J*P*dm")
+imshow(dm2.data');title("J'*P'*P*J*dm")
 subplot(2,2,3)
 imshow(abs.(fftshift(fft(dm1.data')))/norm(abs.(fftshift(fft(dm1.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(dm2,n)')))/norm(abs.(fftshift(fft(reshape(dm2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(dm2.data')))/norm(abs.(fftshift(fft(dm2.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 
-print(stop)
-
-temp = deepcopy(abs.(fftshift(fft(dm1.data))))
-temp[95:105,95:105] .= 0 
-figure();imshow(temp')
-
-figure();
-subplot(2,2,1)
-imshow(dm1.data');title("J'*J*dm")
-subplot(2,2,2)
-imshow(reshape(dm2,n)');title("P'*J'*J*P*dm")
-subplot(2,2,3)
-imshow(abs.(fftshift(fft(dm1.data')))/norm(abs.(fftshift(fft(dm1.data'))),Inf),cmap="jet",vmin=0,vmax=0.5)
-subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(dm2,n)')))/norm(abs.(fftshift(fft(reshape(dm2,n)'))),Inf),cmap="jet",vmin=0,vmax=0.5)
-
-
-maxit = 20
+maxit = 10
 
 x1 = 0f0 .* dm
 x1,his1 = lsqr!(x1,J,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 x2 = 0f0 .* dm
-x2,his2 = lsqr!(x2,J*P,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+x2,his2 = lsqr!(x2,P*J,P*d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
 u1 = 20*log.(res1./norm(d_lin))
-u2 = 20*log.(res2./norm(d_lin))
+u2 = 20*log.(res2./norm(P*d_lin))
 
 figure();
 xlabel("iterations")
 ylabel("ratio")
 PyPlot.plot(res1/norm(d_lin),label="LSQR")
-PyPlot.plot(res2/norm(d_lin),label="P-LSQR")
+PyPlot.plot(res2/norm(P*d_lin),label="P-LSQR")
 title("normalized least squares residual")
 legend()
 
@@ -161,10 +144,10 @@ legend()
 
 figure();
 subplot(2,2,1)
-imshow(reshape(x1,n)');title("LSQR")
+imshow(x1.data');title("LSQR")
 subplot(2,2,2)
-imshow(reshape(P*x2,n)');title("P-LSQR")
+imshow(x2.data');title("P-LSQR")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(x1,n)')))/norm(abs.(fftshift(fft(reshape(x1,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(x1.data')))/norm(abs.(fftshift(fft(x1.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(P*x2,n)')))/norm(abs.(fftshift(fft(reshape(P*x2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(x2.data')))/norm(abs.(fftshift(fft(x2.data'))),Inf),cmap="jet",vmin=0,vmax=1)

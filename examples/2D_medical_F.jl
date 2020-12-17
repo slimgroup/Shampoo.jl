@@ -24,7 +24,7 @@ timeS = 3000f0
 nt = Int64(timeS/dtS)+1
 
 fmin = 10f0
-fmax = 80f0
+fmax = 60f0
 cfreqs = (fmin, fmin+10f0, fmax-10f0, fmax) # corner frequencies
 wavelet = reshape(cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hamming),nt,1)
 #wavelet = ricker_wavelet(timeS, dtS, 0.04f0)[:,1]
@@ -69,8 +69,9 @@ Pw = judiLRWF(info, wavelet)
 # Combined operators
 F = Pr*F*adjoint(Pw)
 
-P = FractionalIntegrationOp(nt,nsrc,nxrec,0.95)
-######################################### Neural network ##########################################
+#P = FractionalIntegrationOp(nt,nsrc,nxrec,0.95)
+P = DiffOp(nt,nsrc,nxrec)
+
 # Extended modeling CNN layers
 q = zeros(Float32,n)
 q[201,201] = 1f0
@@ -108,7 +109,7 @@ imshow(abs.(fftshift(fft(reshape(q_new.weights[1],n)')))/norm(abs.(fftshift(fft(
 subplot(2,2,4)
 imshow(abs.(fftshift(fft(reshape(q_precond.weights[1],n)')))/norm(abs.(fftshift(fft(reshape(q_precond.weights[1],n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 
-maxit = 20
+maxit = 10
 
 q1 = 0f0 .* q
 q1,his1 = lsqr!(q1,F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
@@ -118,13 +119,13 @@ res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
 u1 = 20*log.(res1./norm(d_obs))
-u2 = 20*log.(res2./norm(d_obs))
+u2 = 20*log.(res2./norm(P*d_obs))
 
 figure();
 xlabel("iterations")
 ylabel("ratio")
 PyPlot.plot(res1/norm(d_obs),label="LSQR")
-PyPlot.plot(res2/norm(d_obs),label="P-LSQR")
+PyPlot.plot(res2/norm(P*d_obs),label="P-LSQR")
 title("normalized least squares residual")
 legend()
 
