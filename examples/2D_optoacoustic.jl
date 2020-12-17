@@ -46,15 +46,22 @@ end
 xrec, zrec = circleShape(domain_x / 2,domain_z/2, domain_z/2-5*d[2])
 yrec = 0f0 #2d so always 0
 
-#xrec = range(d[1], stop=Float32((n[1]-1)*d[1]), length=nxrec)
-#zrec = range(0f0, stop=0f0, length=nxrec)
-
 # receiver sampling and recording time
 timeR = 3000f0   # receiver recording time [ms]
 dtR   = 1f0 
 # Set up receiver structure
 nsrc = 1
 recGeometry = Geometry(xrec, yrec, zrec; dt=dtR, t=timeR, nsrc=nsrc)
+
+mute_matrix = zeros(Float32,n)
+
+for i = 1:n[1]
+	for j = 1:n[2]
+		mute_matrix[i,j] = ((i-201)^2+(j-201)^2<190^2)
+	end
+end
+
+M = MaskOp(n,mute_matrix)
 
 # Set up info structure for linear operators
 ntComp = get_computational_nt(recGeometry, model)
@@ -112,9 +119,9 @@ imshow(abs.(fftshift(fft(reshape(q_precond.weights[1],n)')))/norm(abs.(fftshift(
 maxit = 10
 
 q1 = 0f0 .* q
-q1,his1 = lsqr!(q1,F,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+q1,his1 = lsqr!(q1,F*M,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 q2 = 0f0 .* q
-q2,his2 = lsqr!(q2,P*F,P*d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+q2,his2 = lsqr!(q2,P*F*M,P*d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
@@ -141,10 +148,10 @@ legend()
 
 figure();
 subplot(2,2,1)
-imshow(reshape(q1.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q1.weights[1],Inf),vmax=0.8*norm(q1.weights[1],Inf));title("LSQR")
+imshow(reshape((M*q1).weights[1],n)[130:270,130:270]',vmin=-0.8*norm((M*q1).weights[1],Inf),vmax=0.8*norm((M*q1).weights[1],Inf));title("LSQR")
 subplot(2,2,2)
-imshow(reshape(q2.weights[1],n)[130:270,130:270]',vmin=-0.8*norm(q2.weights[1],Inf),vmax=0.8*norm(q2.weights[1],Inf));title("P-LSQR")
+imshow(reshape((M*q2).weights[1],n)[130:270,130:270]',vmin=-0.8*norm((M*q2).weights[1],Inf),vmax=0.8*norm((M*q2).weights[1],Inf));title("P-LSQR")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(q1.weights[1],n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape((M*q1).weights[1],n)'))),cmap="jet")
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(q2.weights[1],n)'))),cmap="jet")
+imshow(abs.(fftshift(fft(reshape((M*q2).weights[1],n)'))),cmap="jet")

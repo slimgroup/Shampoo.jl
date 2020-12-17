@@ -3,7 +3,7 @@ module SeismicPreconditioners
 
 using JUDI.TimeModeling, JOLI, LinearAlgebra, FFTW, SpecialFunctions, DSP
 
-export CumsumOp,DiffOp,HammingOp,FractionalIntegrationOp,FractionalLaplacianOp
+export CumsumOp,DiffOp,HammingOp,FractionalIntegrationOp,FractionalLaplacianOp, MaskOp
 
 # utilities
 include("utils/adj_diff_cumsum.jl")
@@ -16,6 +16,7 @@ include("utils/wavelet.jl")
 include("operators/fractional_integration.jl")
 include("operators/fractional_laplacian.jl")
 include("operators/hamming_operator.jl")
+include("operators/mask_op.jl")
 
 # left preconditioners: work in data domain
 
@@ -59,6 +60,14 @@ function FractionalIntegrationOp(nt::Int,nsrc::Int,nrec::Int,order::Number;DDT=F
 end
 
 # right preconditioners: work in model domain
+
+function MaskOp(n::Tuple,mask::Array{DDT}) where {DDT}
+	P = joLinearFunctionFwd_T(prod(n), prod(n),
+								v -> mask_op(v,mask),
+								w -> mask_op(w,mask),
+								DDT,DDT,name="Mask operator")
+	return P
+end
 
 function FractionalLaplacianOp(F::judiPDEextended,order::Number)
 	model = F.model
