@@ -1,10 +1,10 @@
-using PyPlot, JUDI.TimeModeling, SegyIO, LinearAlgebra, FFTW, DSP, SpecialFunctions, JOLI
+using PyPlot, JUDI.TimeModeling,LinearAlgebra, FFTW, DSP, SpecialFunctions, JOLI
 using IterativeSolvers
 
 using SeismicPreconditioners
 
-n = (401, 401)   # (x,y,z) or (x,z)
-d = (2.5f0, 2.5f0)
+n = (201, 201)   # (x,y,z) or (x,z)
+d = (5f0, 5f0)
 o = (0f0, 0f0)
 
 extentx = (n[1]-1)*d[1]
@@ -12,7 +12,7 @@ extentz = (n[2]-1)*d[2]
 
 v0 = 2f0*ones(Float32,n)
 v = deepcopy(v0)
-v[201,201] = 3f0  # dirac perturbation
+v[101,101] = 3f0  # dirac perturbation
 
 # Slowness squared [s^2/km^2]
 m = convert(Array{Float32,2},(1f0 ./ v).^2)	# true model
@@ -24,17 +24,22 @@ model0 = Model(n, d, o, m0; nb = 200)
 
 # Model structure
 
-dtS = 1f0
-timeS = 2000f0
+dtS = 4f0
+timeS = 4000f0
 nt = Int64(timeS/dtS)+1
 
 fmin = 10f0
-fmax = 80f0
-cfreqs = (fmin, fmin+5f0, fmax-5f0, fmax) # corner frequencies
-wavelet = cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hanning)
+fmax = 60f0
+cfreqs = (fmin, fmin+5f0, fmax-5f0, fmax) # corner frequencies1
+wavelet = reshape(cfreq_wavelet(500, nt, dtS/1f3, cfreqs; edge=hanning),:,1)
 #wavelet = ricker_wavelet(timeS, dtS, 0.03f0)
 
 ################################### Source/receiver geometry ######################################
+
+idx_wb = 30
+Tm = judiTopmute(model0.n, idx_wb, 10)  # Mute water column
+S = judiDepthScaling(model0)
+Mr = S*Tm
 
 # Set up receiver geometry
 
@@ -48,7 +53,7 @@ zrec = range(14f0, stop=14f0, length=nrec)
 timeR = timeS   # receiver recording time [ms]
 dtR   = dtS 
 # Set up receiver structure
-nsrc = 6
+nsrc = 8
 
 xsrc = convertToCell(range(0f0, stop=Float32((n[1]-1)*d[1]), length=nsrc))
 # xsrc = convertToCell(range((n[1]-1)*d[1]/2f0, stop=(n[1]-1)*d[1]/2f0, length=nsrc))
@@ -81,32 +86,12 @@ fig = PyPlot.gcf();
 title("Experimental setup")
 
 # left preconditioners
-P = CumsumPrecondJ(J)
-H = HammingPrecond(J)
+P = FractionalIntegrationOp(nt,nsrc,nrec,-0.5)
 
-# right preconditioners
-S = judiDepthScaling(model0)
+d_obs = J*dm
 
-d_orig = J*S*dm
-
-d_lin = d_orig
-#d_lin = d_orig
-
-#dm1 = S'*J'*H'*d_lin
-dm1 = S'*J'*d_lin
-
-d_lin_new = P*d_lin
-
-figure();
-subplot(1,2,1);
-imshow(d_lin.data[6],cmap="Greys",vmin=-0.1*norm(d_lin.data[6],Inf),vmax=0.1*norm(d_lin.data[6],Inf));
-title("shot record");
-subplot(1,2,2);
-imshow(d_lin_new.data[6],cmap="Greys",vmin=-0.1*norm(d_lin_new.data[6],Inf),vmax=0.1*norm(d_lin_new.data[6],Inf));
-title("integrated shot record");
-
-#dm2 = S'*J'*H'*P'*d_lin_new
-dm2 = S'*J'*d_lin_new
+dm1 = J'*d_obs
+dm2 = J'*P'*P*d_obs
 
 figure();
 subplot(2,1,1);
@@ -116,39 +101,33 @@ PyPlot.plot(abs.(fftshift(fft(wavelet))));title("wavelet in frequency domain");
 
 figure();
 subplot(2,2,1)
-imshow(reshape(S*dm1,n)');title("S'*J'*J*S*dm")
+imshow(dm1.data');title("J'*J*dm")
 subplot(2,2,2)
-imshow(reshape(S*dm2,n)');title("S'*J'*P'*P*J*S*dm")
+imshow(dm2.data');title("J'*P'*P*J*dm")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(dm1,n)')))/norm(abs.(fftshift(fft(reshape(dm1,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(dm1.data')))/norm(abs.(fftshift(fft(dm1.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(dm2,n)')))/norm(abs.(fftshift(fft(reshape(dm2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(dm2.data')))/norm(abs.(fftshift(fft(dm2.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 
-print(stop)
-
-maxit = 5
+maxit = 10
 
 x1 = 0f0 .* dm
-#J1 = H*J*S
-J1 = J*S
-x1,his1 = lsqr!(x1,J1,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+x1,his1 = lsqr!(x1,P*J*Mr,P*d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 
 x2 = 0f0 .* dm
-#J2 = P*H*J*S
-J2 = P*J*S
-x2,his2 = lsqr!(x2,J2,d_lin_new,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
+x2,his2 = lsqr!(x2,J*Mr,d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)
 
 res1 = his1[:resnorm]
 res2 = his2[:resnorm]
 
-u1 = 20*log.(res1./norm(d_lin))
-u2 = 20*log.(res2./norm(d_lin_new))
+u1 = 20*log.(res1./norm(d_obs))
+u2 = 20*log.(res2./norm(P*d_obs))
 
 figure();
 xlabel("iterations")
 ylabel("ratio")
-PyPlot.plot(res1/norm(d_lin),label="LSQR")
-PyPlot.plot(res2/norm(d_lin_new),label="P-LSQR")
+PyPlot.plot(res1/norm(d_obs),label="LSQR")
+PyPlot.plot(res2/norm(P*d_obs),label="P-LSQR")
 title("normalized least squares residual")
 legend()
 
@@ -163,10 +142,10 @@ legend()
 
 figure();
 subplot(2,2,1)
-imshow(reshape(S*x1,n)');title("LSQR")
+imshow(reshape(Mr*x1,n)');title("LSQR")
 subplot(2,2,2)
-imshow(reshape(S*x2,n)');title("P-LSQR")
+imshow(reshape(Mr*x2,n)');title("P-LSQR")
 subplot(2,2,3)
-imshow(abs.(fftshift(fft(reshape(S*x1,n)')))/norm(abs.(fftshift(fft(reshape(S*x1,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(Mr*x1,n)')))/norm(abs.(fftshift(fft(reshape(Mr*x1,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
 subplot(2,2,4)
-imshow(abs.(fftshift(fft(reshape(S*x2,n)')))/norm(abs.(fftshift(fft(reshape(S*x2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
+imshow(abs.(fftshift(fft(reshape(Mr*x2,n)')))/norm(abs.(fftshift(fft(reshape(Mr*x2,n)'))),Inf),cmap="jet",vmin=0,vmax=1)
