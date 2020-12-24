@@ -11,7 +11,7 @@ function frac_int(nt::Int,order::Number;DDT=Float32)
 	# fractional integration for a trace
 	x    = zeros(Int64,nt,1);
 	x[1] = 1;
-	y    = convert(Array{DDT,2},fgl_deriv(order,x,1));	# fractional integration
+	y    = convert(Array{DDT,2},fgl_deriv(-order,x,1));	# fractional integration
 	C    = joConvolve(nt,1,y[:];DDT=DDT,RDT=DDT);
 	return C
 end

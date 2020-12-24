@@ -8,7 +8,7 @@ model, _ , _ = setup_model()
 nsrc = 4
 _, _, recGeometry, _ = setup_geom(model; nsrc=nsrc)
 
-tol = 5f-4
+tol = 5f-5
 nrec = length(recGeometry.xloc[1])
 nt = recGeometry.nt[1]
 
@@ -33,10 +33,14 @@ d_obs1 = judiVector(recGeometry,data1)
 d_obs2 = judiVector(recGeometry,data2)
 
 for Op in left_list
-    a = dot(Op*d_obs1, d_obs2)
-    b = dot(d_obs1,Op'*d_obs2)
-    @printf(" <F x, y> : %2.5e, <x, F' y> : %2.5e, relative error : %2.5e \n", a, b, (a - b)/(a + b))
-    @test isapprox(a/(a+b), b/(a+b), atol=tol, rtol=0)
+    a = Op*(d_obs1+d_obs2)
+    b = Op*d_obs1 + Op*d_obs2
+    scalar = randn(Float32)
+    c = scalar*(Op*d_obs1)
+    d = Op*(scalar*d_obs1)
+    @printf(" F * (a + b): %2.5e, F * a + F * b : %2.5e, relative error : %2.5e \n", norm(a), norm(b), norm(a-b)/norm(a))
+    @printf(" a (F x): %2.5e, F a x : %2.5e, relative error : %2.5e \n", norm(c), norm(d), norm(c-d)/norm(c))
+    @test isapprox(a, b, rtol=tol)
 end
 
 ######## Test right preconditioners
@@ -49,8 +53,12 @@ dm1 = randn(Float32,prod(model.n))
 dm2 = randn(Float32,prod(model.n))
 
 for Op in right_list
-    a = dot(Op*dm1, dm2)
-    b = dot(dm1,Op'*dm2)
-    @printf(" <F x, y> : %2.5e, <x, F' y> : %2.5e, relative error : %2.5e \n", a, b, (a - b)/(a + b))
-    @test isapprox(a/(a+b), b/(a+b), atol=tol, rtol=0)
+    a = Op*(dm1+dm2)
+    b = Op*dm1 + Op*dm2
+    scalar = randn(Float32)
+    c = scalar*(Op*dm1)
+    d = Op*(scalar*dm1)
+    @printf(" F * (a + b): %2.5e, F * a + F * b : %2.5e, relative error : %2.5e \n", norm(a), norm(b), norm(a-b)/norm(a))
+    @printf(" a (F x): %2.5e, F a x : %2.5e, relative error : %2.5e \n", norm(c), norm(d), norm(c-d)/norm(c))
+    @test isapprox(a, b, rtol=tol)
 end

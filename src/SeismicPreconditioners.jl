@@ -50,7 +50,7 @@ function HammingOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
 end
 
 function FractionalIntegrationOp(nt::Int,nsrc::Int,nrec::Int,order::Number;DDT=Float32)
-
+	### Positive order -> integration, Negative order -> derivative
 	C = frac_int(nt,order;DDT=DDT)
 	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
 	                             v -> apply_frac_integral(C,v),
