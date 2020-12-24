@@ -1,6 +1,13 @@
 using SeismicPreconditioners
-using Test
+using JUDI.TimeModeling, Test
+using LinearAlgebra, Printf, JOLI
+
+include("test_utils.jl")
+
+basic = ["test_adjoint.jl"]
 
 @testset "SeismicPreconditioners.jl" begin
-    # Write your tests here.
+    for t = basic
+        include(t)
+    end
 end

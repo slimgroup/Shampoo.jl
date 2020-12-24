@@ -10,10 +10,10 @@ function adjoint_diff(d_obs::judiVector)
     return d_out
 end
 
-function adjoint_cumsum(d_obs::judiVector)
+function adjoint_cumsum(d_obs::judiVector;dims=1)
     d_out = deepcopy(d_obs)
     for i = 1:d_obs.nsrc
-        d_out.data[i] = reverse(cumsum(reverse(d_obs,dims=1),dims=1),dims=1)
+        d_out.data[i] = reverse(cumsum(reverse(d_obs.data[i],dims=dims),dims=dims),dims=dims)
     end
     return d_out
 end
