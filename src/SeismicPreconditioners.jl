@@ -7,6 +7,7 @@ export CumsumOp,DiffOp,HammingOp,FractionalIntegrationOp,FractionalLaplacianOp, 
 
 # utilities
 include("utils/adj_diff_cumsum.jl")
+include("utils/auxilary.jl")
 include("utils/fgl_deriv.jl")
 include("utils/Filter_freq_band.jl")
 include("utils/joConvolve.jl")

@@ -12,7 +12,7 @@ extentz = (n[2]-1)*d[2]
 
 v0 = 2f0*ones(Float32,n)
 v = deepcopy(v0)
-v[101,101] = 3f0  # dirac perturbation
+v[101,101] = 2.1f0  # dirac perturbation
 
 # Slowness squared [s^2/km^2]
 m = convert(Array{Float32,2},(1f0 ./ v).^2)	# true model
@@ -24,8 +24,8 @@ model0 = Model(n, d, o, m0; nb = 200)
 
 # Model structure
 
-dtS = 4f0
-timeS = 4000f0
+dtS = 2f0
+timeS = 2000f0
 nt = Int64(timeS/dtS)+1
 
 fmin = 10f0
@@ -86,7 +86,7 @@ fig = PyPlot.gcf();
 title("Experimental setup")
 
 # left preconditioners
-P = FractionalIntegrationOp(nt,nsrc,nrec,-0.5)
+P = FractionalIntegrationOp(nt,nsrc,nrec,0.5)
 
 d_obs = J*dm
 
