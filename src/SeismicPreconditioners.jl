@@ -36,18 +36,12 @@ function DiffOp(nt::Int,nsrc::Int,nrec::Int;order=1,DDT=Float32)
 	return P
 end
 
-function HammingOp(J::judiJacobian{ADDT,ARDT}) where {ADDT,ARDT}
-	nsrc = length(J.srcGeometry.xloc)
-	nrec = length(J.recGeometry.xloc[1])
-	offset = zeros(Float32,nsrc,nrec)
-	for i = 1:nsrc
-		offset[i,:] = abs.(J.srcGeometry.xloc[i] .- J.recGeometry.xloc[i])
-	end
-	H = joLinearFunctionFwd_T(size(J,1), size(J,1),
-								v -> hamm_op(v,offset),
-								w -> hamm_op(w,offset),
-								ARDT,ARDT,name="Hamming operator")
-	return P
+function HammingOp(nt::Int,nsrc::Int,nrec::Int;DDT=Float32)
+	H = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
+								v -> hamm_op(v),
+								w -> hamm_op(w),
+								DDT,DDT,name="Hamming operator")
+	return H
 end
 
 function FractionalIntegrationOp(nt::Int,nsrc::Int,nrec::Int,order::Number;DDT=Float32)
