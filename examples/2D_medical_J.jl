@@ -47,7 +47,7 @@ yrec = 0f0 #2d so always 0
 timeR = timeS   # receiver recording time [ms]
 dtR   = dtS 
 # Set up receiver structure
-nsrc = 8
+nsrc = 32
 
 xsrc, zsrc = circleShape(extentx / 2,extentz/2, extentz/2-5*d[2],nsrc)
 ysrc = range(0f0,stop=0f0,length=nsrc) #2d so always 0
@@ -81,7 +81,7 @@ Ps = judiProjection(info, srcGeometry)
 F0 = Pr*F0*adjoint(Ps)
 
 J = judiJacobian(F0, q)
-P = DiffOp(nt,nsrc,nrec)
+P = FractionalIntegrationOp(nt,nsrc,nrec,-0.5)
 
 PyPlot.rc("font", family="serif"); PyPlot.rc("xtick", labelsize=8); PyPlot.rc("ytick", labelsize=8)
 figure(); imshow(reshape(sqrt.(1f0./m), n[1], n[2])',extent=(0,extentx,extentz,0));
