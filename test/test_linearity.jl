@@ -12,7 +12,7 @@ tol = 5f-5
 nrec = length(recGeometry.xloc[1])
 nt = recGeometry.nt[1]
 
-println("Test adjoint of preconditioner operators")
+println("Test linearity of preconditioner operators")
 
 ######## Test left preconditioners
 
