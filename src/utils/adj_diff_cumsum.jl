@@ -7,7 +7,7 @@ function adjoint_diff(d_obs::judiVector)
     for i = 1:d_obs.nsrc
         d_out.data[i][1:end-1,:] = d_obs.data[i][1:end-1,:] - d_obs.data[i][2:end,:]
     end
-    return d_out
+    return 1f0/d_obs.geometry.dt[1]*d_out
 end
 
 function adjoint_cumsum(d_obs::judiVector;dims=1)
@@ -15,5 +15,5 @@ function adjoint_cumsum(d_obs::judiVector;dims=1)
     for i = 1:d_obs.nsrc
         d_out.data[i] = reverse(cumsum(reverse(d_obs.data[i],dims=dims),dims=dims),dims=dims)
     end
-    return d_out
+    return d_obs.geometry.dt[1]*d_out
 end

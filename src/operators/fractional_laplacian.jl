@@ -7,17 +7,15 @@ export laplacian_mask, apply_mask_fourier, laplacian_operator
 ###############################################################################
 # Fractional laplacian implemented by 2D Discrete Fourier Transform
 
-function laplacian_mask(model::Model,order::Number)
+function laplacian_mask(n::Tuple, d::Tuple, order::Number)
 	
-	n = model.n
-	d = model.d
 	dk = 1/d[1]/n[1]
 	mask = ones(Float32,n)
 	center_x = (n[1]+1)/2
 	center_z = (n[2]+1)/2
 	
 	x = reshape(collect(1:n[1]), :, 1)
-	z = reshape(collect(1:n[1]), 1, :)
+	z = reshape(collect(1:n[2]), 1, :)
 	
 	f = dk*sqrt.((x.-center_x).^2f0.+(z.-center_z).^2f0)
 	
@@ -36,9 +34,8 @@ function laplacian_mask(model::Model,order::Number)
 	return convert(Array{Float32,2},mask)
 end
 
-function apply_mask_fourier(q::Array,mask::Array,model::Model,info::Info)
-	n = model.n
-	nsrc = info.nsrc
+function apply_mask_fourier(q::Array,mask::Array,nsrc::Int)
+	n = size(mask)
 	q_t = reshape(q,n[1],n[2],nsrc)
 	q_ans = deepcopy(q_t)
 	for i = 1:nsrc
@@ -49,13 +46,12 @@ function apply_mask_fourier(q::Array,mask::Array,model::Model,info::Info)
 	return reshape(q_ans,size(q))
 end
 
-#function apply_mask_fourier(q::PhysicalParameter,mask::Array,model::Model,info::Info)
-#	return apply_mask_fourier(vec(q.data),mask,model,info)
-#end
+function apply_mask_fourier(q::PhysicalParameter,mask::Array,nsrc::Int)
+	return apply_mask_fourier(vec(q.data),mask,nsrc)
+end
 
-function apply_mask_fourier(q::judiWeights,mask::Array,model::Model,info::Info)
-	n = model.n
-	nsrc = info.nsrc
+function apply_mask_fourier(q::judiWeights,mask::Array,nsrc::Int)
+	n = size(mask)
 	q_ans = deepcopy(q)
 	for i = 1:nsrc
 		q_t = q.weights[i]

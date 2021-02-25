@@ -64,20 +64,13 @@ function MaskOp(n::Tuple,mask::Array{DDT}) where {DDT}
 	return P
 end
 
-function FractionalLaplacianOp(F::judiPDEextended,order::Number)
+function FractionalLaplacianOp(n::Tuple,order::Number;DDT=Float32)
 	model = F.model
 	info = F.info
 	P = laplacian_operator(model::Model,order::Number,info::Info)
 	return P
 end
 
-function FractionalLaplacianOp(J::judiJacobian,order::Number)
-	model = J.model
-    info = J.info
-    info1 = deepcopy(info)
-	info1.nsrc = 1
-	P = laplacian_operator(model::Model,order::Number,info1::Info)
-	return P
 end
 
-end
+############### Preconditioners below originated from JUDI, moved here Feb 2021 ##############################

@@ -4,7 +4,7 @@ using LinearAlgebra, Printf, JOLI
 
 include("test_utils.jl")
 
-basic = ["test_adjoint.jl","test_linearity.jl"]
+basic = ["test_adjoint.jl","test_linearity.jl", "test_output.jl"]
 
 @testset "SeismicPreconditioners.jl" begin
     for t = basic
