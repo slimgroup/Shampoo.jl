@@ -1,7 +1,7 @@
-using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI, DSP
+using PyPlot, JUDI, LinearAlgebra, FFTW, JOLI, DSP
 using IterativeSolvers
 
-using SeismicPreconditioners
+using Shampoo
 
 n = (401, 401)   # (x,y,z) or (x,z)
 d = (5f0, 5f0)

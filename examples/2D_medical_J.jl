@@ -1,7 +1,7 @@
 using PyPlot, JUDI.TimeModeling, LinearAlgebra, FFTW, JOLI, DSP
 using IterativeSolvers
 
-using SeismicPreconditioners
+using Shampoo
 
 n = (201, 201)   # (x,y,z) or (x,z)
 d = (5f0, 5f0)
@@ -47,7 +47,7 @@ yrec = 0f0 #2d so always 0
 timeR = timeS   # receiver recording time [ms]
 dtR   = dtS 
 # Set up receiver structure
-nsrc = 32
+nsrc = 16
 
 xsrc, zsrc = circleShape(extentx / 2,extentz/2, extentz/2-5*d[2],nsrc)
 ysrc = range(0f0,stop=0f0,length=nsrc) #2d so always 0
@@ -116,7 +116,7 @@ imshow(abs.(fftshift(fft(dm1.data')))/norm(abs.(fftshift(fft(dm1.data'))),Inf),c
 subplot(2,2,4)
 imshow(abs.(fftshift(fft(dm2.data')))/norm(abs.(fftshift(fft(dm2.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 
-maxit = 10
+maxit = 5
 
 x1 = 0f0 .* dm
 x1,his1 = lsqr!(x1,J*M,d_lin,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)

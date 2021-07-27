@@ -1,4 +1,4 @@
-# SeismicPreconditioners
+# Shampoo.jl
 
 ### Overview
 

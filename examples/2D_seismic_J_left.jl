@@ -1,7 +1,7 @@
-using PyPlot, JUDI.TimeModeling,LinearAlgebra, FFTW, DSP, SpecialFunctions, JOLI
+using PyPlot, JUDI,LinearAlgebra, FFTW, DSP, SpecialFunctions, JOLI
 using IterativeSolvers
 
-using SeismicPreconditioners
+using Shampoo
 
 n = (201, 201)   # (x,y,z) or (x,z)
 d = (5f0, 5f0)
@@ -64,7 +64,6 @@ zsrc = convertToCell(range(9f0, stop=9f0, length=nsrc))
 recGeometry = Geometry(xrec, yrec, zrec; dt=dtR, t=timeR, nsrc=nsrc)
 
 srcGeometry = Geometry(xsrc, ysrc, zsrc; dt=dtS, t=timeS)
-#srcGeometry = Geometry(xsrc, ysrc, zsrc; dt=dtS, t=timeS)
 
 q = judiVector(srcGeometry, wavelet)
 
