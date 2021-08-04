@@ -108,7 +108,7 @@ imshow(abs.(fftshift(fft(dm1.data')))/norm(abs.(fftshift(fft(dm1.data'))),Inf),c
 subplot(2,2,4)
 imshow(abs.(fftshift(fft(dm2.data')))/norm(abs.(fftshift(fft(dm2.data'))),Inf),cmap="jet",vmin=0,vmax=1)
 
-maxit = 10
+maxit = 5
 
 x1 = 0f0 .* dm
 x1,his1 = lsqr!(x1,P*J*Mr,P*d_obs,atol=0f0,btol=0f0,conlim=0f0,maxiter=maxit,log=true,verbose=true)

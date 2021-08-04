@@ -1,7 +1,8 @@
 # Author: Mathias Louboutin, mlouboutin3@gatech.edu
 # Date: July 2020
+## Update by Ziyi Yin
 
-using JUDI.TimeModeling, ArgParse, Images
+using JUDI, Images
 
 export setup_model, parse_commandline, setup_geom
 
