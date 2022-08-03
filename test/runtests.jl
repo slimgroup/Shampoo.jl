@@ -1,6 +1,6 @@
 using Shampoo
 using Test
-using LinearAlgebra, Printf, JOLI
+using LinearAlgebra, JOLI
 
 nt = 21
 dt = 1f0
