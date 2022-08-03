@@ -1,74 +1,28 @@
 __precompile__()
 module Shampoo
 
-using JUDI, JOLI, LinearAlgebra, FFTW, SpecialFunctions, DSP
-
-export CumsumOp,DiffOp,HammingOp,FractionalIntegrationOp,FractionalLaplacianOp, MaskOp
-
-# utilities
-include("utils/adj_diff_cumsum.jl")
-include("utils/auxilary.jl")
-include("utils/fgl_deriv.jl")
-include("utils/Filter_freq_band.jl")
-include("utils/joConvolve.jl")
-include("utils/wavelet.jl")
-
-# operators
-include("operators/fractional_integration.jl")
-include("operators/fractional_laplacian.jl")
-include("operators/hamming_operator.jl")
-include("operators/mask_op.jl")
+using JOLI, LinearAlgebra, FFTW
+export FractionalIntegrationOp
 
 # left preconditioners: work in data domain
 
-function CumsumOp(nt::Int,nsrc::Int,nrec::Int;DDT=Float32)
-	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
-	                             v -> cumsum(v),
-	                             w -> adjoint_cumsum(w),
-								 DDT,DDT,name="cumsum operator")
-end
+function FractionalIntegrationOp(nt::Int,dt::Float32,nsrc::Int,nrec::Int,order::Number=.5f0)
 
-function DiffOp(nt::Int,nsrc::Int,nrec::Int;order=1,DDT=Float32)
-	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
-	                             v -> diff(v),
-	                             w -> adjoint_diff(w),
-								 DDT,DDT,name="diff operator")
+	## Follows https://github.com/SINBADconsortium/SLIM-release-apps/blob/master/tools/algorithms/TimeModeling/opHalfInt.m
+
+    F = joDFT(nt; DDT=Float32, RDT=ComplexF32, centered=true);
+
+    df = 1f0/dt;
+    freq = -(nt-1)/2*df:df:(nt-1)/2*df;
+    omega = freq*2*pi;
+    partialDt = (abs.(omega)).^(-order);
+	order>0 && (partialDt[Int(ceil((nt-1)/2))+1] = 1f0);
+    P1 = F'*joDiag(ComplexF32.(partialDt))*F;
+
+    P = joKron(joEye(nsrc, DDT=Float32, RDT=Float32), joEye(nrec; DDT=Float32, RDT=Float32), P1);
+	
 	return P
-end
 
-function HammingOp(nt::Int,nsrc::Int,nrec::Int;DDT=Float32)
-	H = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
-								v -> hamm_op(v),
-								w -> hamm_op(w),
-								DDT,DDT,name="Hamming operator")
-	return H
-end
-
-function FractionalIntegrationOp(nt::Int,nsrc::Int,nrec::Int,order::Number;DDT=Float32)
-	### Positive order -> integration, Negative order -> derivative
-	C = frac_int(nt,order; DDT=DDT)
-	P = joLinearFunctionFwd_T(nt*nsrc*nrec, nt*nsrc*nrec,
-	                             v -> apply_frac_integral(C,v),
-	                             w -> apply_frac_integral(C',w),
-								 DDT,DDT,name="Fractional integration operator")
-	return P
-end
-
-# right preconditioners: work in model domain
-
-function MaskOp(n::Tuple,mask::Array{DDT}) where {DDT}
-	P = joLinearFunctionFwd_T(prod(n), prod(n),
-								v -> mask_op(v,mask),
-								w -> mask_op(w,mask),
-								DDT,DDT,name="Mask operator")
-	return P
-end
-
-function FractionalLaplacianOp(n::Tuple,order::Number;DDT=Float32)
-	model = F.model
-	info = F.info
-	P = laplacian_operator(model::Model,order::Number,info::Info)
-	return P
 end
 
 end

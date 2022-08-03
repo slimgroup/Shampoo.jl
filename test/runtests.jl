@@ -1,13 +1,16 @@
 using Shampoo
-using JUDI, Test
+using Test
 using LinearAlgebra, Printf, JOLI
 
-include("test_utils.jl")
-
-basic = ["test_adjoint.jl","test_linearity.jl", "test_output.jl"]
+nt = 21
+dt = 1f0
+nsrc = 2
+nrec = 4
 
 @testset "Shampoo.jl" begin
-    for t = basic
-        include(t)
-    end
+
+    P = FractionalIntegrationOp(nt,dt,nsrc,nrec)
+    @test isadjoint(P)[1]
+    @test islinear(P)[1]
+
 end
