@@ -104,7 +104,7 @@ tight_layout()
 savefig(name*"_wavelet.png", dpi=300);
 
 # left preconditioners
-P = FractionalIntegrationOp(nt,dtR,nsrc,nrec,.5f0)
+P = FractionalIntegrationOp(J)
 
 figure(figsize=(20,12))
 subplot(3,3,1)
